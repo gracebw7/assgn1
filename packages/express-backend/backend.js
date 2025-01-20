@@ -34,8 +34,6 @@ app.post("/users", (req, res) => {
   res.send();
 });
 
-
-
 app.get("/users", (req, res) => {
   const name = req.query.name;
   if (name != undefined) {
@@ -53,6 +51,34 @@ app.get("/users/:id", (req, res) => {
   if (result === undefined) {
     res.status(404).send("Resource not found");
   } else {
+    res.send(result);
+  }
+});
+
+app.get("/users/:id/:job", (req, res) => {
+  const id = req.params.id;
+  const job = req.params.job;
+  let result = findUserById(id);
+  if (result === undefined) {
+    res.status(404).send("Resource not found");
+  } else {
+    if (result["job"] === job) {
+      res.send(result);
+    } else {
+      res.status(404).send("Resource not found");
+    }
+  }
+});
+
+app.delete("/users/:id", (req, res) => {
+  const id = req.params.id;
+  let result = findUserById(id);
+  if (result === undefined) {
+    res.status(404).send("Resource not found");
+  } else {
+    users["users_list"] = users["users_list"].filter(
+      (user) => user["id"] !== id
+    );
     res.send(result);
   }
 });
