@@ -15,6 +15,9 @@ app.listen(port, () => {
 const findUserByName = (name) => {
   return users["users_list"].filter((user) => user["name"] === name);
 };
+const findUserByJob = (job) => {
+    return users["users_list"].filter((user) => user["job"] === job);
+};
 
 app.get("/users", (req, res) => {
   const name = req.query.name;
