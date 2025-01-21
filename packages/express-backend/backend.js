@@ -25,6 +25,9 @@ const addUser = (user) => {
   users["users_list"].push(user);
   return user;
 };
+function generateID() {
+  return `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+}
 
 app.post("/users", (req, res) => {
   try {
@@ -32,7 +35,7 @@ app.post("/users", (req, res) => {
     if (!name || !job) {
       return res.status(400).send("Name and job parameters are required");
     }
-    const userToAdd = req.body;
+    const userToAdd = { id: generateID(), name, job };
     addUser(userToAdd);
     return res.status(201).send(userToAdd);
   } catch (e) {
