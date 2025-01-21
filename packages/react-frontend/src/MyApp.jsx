@@ -6,18 +6,30 @@ import Form from "./Form";
 function MyApp() {
   const [characters, setCharacters] = useState([]);
 
+  
   function removeOneCharacter(index) {
-    const updated = characters.filter((character, i) => {
-      return i !== index;
+    const userToDelete = characters[index];
+    const { id } = userToDelete;
+    fetch(`http://localhost:8000/users/${id}`, {
+      method: "DELETE",
+    })
+    .then((response) => {
+      if (response.ok){
+        const updated = characters.filter((character, i) => i !== index);
+        setCharacters(updated);
+      }else{
+        throw new Error("Failed to delete user");
+      }
+    })
+    .catch((error) => {
+      console.error(error);
     });
-    setCharacters(updated);
   }
   function updateList(person) {
     postUser(person)
-      .then((response) => {
-        if(response && response.status === 201){
-          setCharacters([...characters, person]);
-        }
+      .then((response) => response.json())
+      .then((newUser) => {
+        setCharacters([...characters, newUser]);
       })
       .catch((error) => {
         console.log(error);
@@ -42,7 +54,7 @@ function MyApp() {
         throw new Error("Resource not found");
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
       throw error;
     }
   };

@@ -29,6 +29,7 @@ function generateID() {
   return `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 }
 
+
 app.post("/users", (req, res) => {
   try {
     const { name, job } = req.body;
@@ -82,14 +83,14 @@ app.get("/users/:id/:job", (req, res) => {
 
 app.delete("/users/:id", (req, res) => {
   const id = req.params.id;
-  let result = findUserById(id);
+  const result = findUserById(id);
   if (result === undefined) {
     res.status(404).send("Resource not found");
   } else {
     users["users_list"] = users["users_list"].filter(
       (user) => user["id"] !== id
     );
-    res.send(result);
+    res.status(204).send({message: "Resource deleted", user: result});
   }
 });
 
