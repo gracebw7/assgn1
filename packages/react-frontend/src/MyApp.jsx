@@ -14,7 +14,11 @@ function MyApp() {
   }
   function updateList(person) {
     postUser(person)
-      .then(() => setCharacters([...characters, person]))
+      .then((response) => {
+        if(response && response.status === 201){
+          setCharacters([...characters, person]);
+        }
+      })
       .catch((error) => {
         console.log(error);
       });
@@ -23,17 +27,26 @@ function MyApp() {
     const promise = fetch("http://localhost:8000/users");
     return promise;
   }
-  function postUser(person) {
-    const promise = fetch("Http://localhost:8000/users", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(person),
-    });
+  const postUser = async (person) => {
+    try {
+      const response = await fetch("http://localhost:8000/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(person),
+      });
+      if (response.status === 201) {
+        return response;
+      } else {
+        throw new Error("Resource not found");
+      }
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  };
 
-    return promise;
-  }
   useEffect(() => {
     fetchUsers()
       .then((res) => res.json())

@@ -21,19 +21,24 @@ const findUserByName = (name) => {
 const findUserById = (id) =>
   users["users_list"].find((user) => user["id"] === id);
 
-const findUserByJob = (job) => {
-  return users["users_list"].filter((user) => user["job"] === job);
-};
-
 const addUser = (user) => {
   users["users_list"].push(user);
   return user;
 };
 
 app.post("/users", (req, res) => {
-  const userToAdd = req.body;
-  addUser(userToAdd);
-  res.send();
+  try {
+    const { name, job } = req.body;
+    if (!name || !job) {
+      return res.status(400).send("Name and job parameters are required");
+    }
+    const userToAdd = req.body;
+    addUser(userToAdd);
+    return res.status(201).send(userToAdd);
+  } catch (e) {
+    console.error(e);
+    return res.status(400).send("Invalid request body");
+  }
 });
 
 app.get("/users", (req, res) => {
