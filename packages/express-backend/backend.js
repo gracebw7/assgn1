@@ -15,7 +15,7 @@ app.listen(port, () => {
 });
 
 const findUserByName = (name) => {
-  return users["users_list"].filter((user) => user["name"] === name);
+  return users["users_list"].find((user) => user["name"] === name);
 };
 
 const findUserById = (id) =>
@@ -66,10 +66,10 @@ app.get("/users/:id", (req, res) => {
   }
 });
 
-app.get("/users/:id/:job", (req, res) => {
-  const id = req.params.id;
+app.get("/users/:name/:job", (req, res) => {
+  const name = req.params.name;
   const job = req.params.job;
-  let result = findUserById(id);
+  let result = findUserByName(name);
   if (result === undefined) {
     res.status(404).send("Resource not found");
   } else {
