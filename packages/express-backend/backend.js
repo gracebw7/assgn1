@@ -1,5 +1,15 @@
 import express from "express";
 import cors from "cors";
+import dotenv from "dotenv";
+import mongoose from "mongoose";
+import userModel from "./models/user.js";
+
+dotenv.config();
+const { MONGO_CONNECTION_STRING } = process.env;
+mongoose.set("debug", true);
+mongoose
+  .connect(MONGO_CONNECTION_STRING + "users") // connect to Db "users"
+  .catch((error) => console.log(error));
 const app = express();
 const port = 8000;
 
@@ -15,111 +25,118 @@ app.listen(port, () => {
 });
 
 const findUserByName = (name) => {
-  return users["users_list"].find((user) => user["name"] === name);
+  return userModel.find({ name: name });
 };
 
-const findUserById = (id) =>
-  users["users_list"].find((user) => user["id"] === id);
+const findUserById = (id) => {
+  return userModel.findById(id);
+};
 
 const addUser = (user) => {
-  users["users_list"].push(user);
-  return user;
+  const userToAdd = new userModel(user);
+  return userToAdd.save();
 };
-function generateID() {
-  return `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-}
 
-
-app.post("/users", (req, res) => {
+app.post("/users", async (req, res) => {
   try {
     const { name, job } = req.body;
     if (!name || !job) {
       return res.status(400).send("Name and job parameters are required");
     }
-    const userToAdd = { id: generateID(), name, job };
-    addUser(userToAdd);
-    return res.status(201).send(userToAdd);
+    const userToAdd = { name, job };
+    const newUser = await addUser(userToAdd);
+    return res.status(201).send(newUser);
   } catch (e) {
     console.error(e);
     return res.status(400).send("Invalid request body");
   }
 });
 
-app.get("/users", (req, res) => {
+app.get("/users", async (req, res) => {
   const name = req.query.name;
-  if (name != undefined) {
-    let result = findUserByName(name);
-    result = { users_list: result };
-    res.send(result);
-  } else {
-    res.send(users);
-  }
-});
-
-app.get("/users/:id", (req, res) => {
-  const id = req.params.id;
-  let result = findUserById(id);
-  if (result === undefined) {
-    res.status(404).send("Resource not found");
-  } else {
-    res.send(result);
-  }
-});
-
-app.get("/users/:name/:job", (req, res) => {
-  const name = req.params.name;
-  const job = req.params.job;
-  let result = findUserByName(name);
-  if (result === undefined) {
-    res.status(404).send("Resource not found");
-  } else {
-    if (result["job"] === job) {
-      res.send(result);
+  try {
+    let result;
+    if (name) {
+      result = await findUserByName(name);
     } else {
-      res.status(404).send("Resource not found");
+      result = await userModel.find(); // Fetch all users if no name is specified
     }
+    res.send({ users_list: result });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send("Error fetching users");
   }
 });
 
-app.delete("/users/:id", (req, res) => {
+// GET: Fetch a specific user by ID
+app.get("/users/:id", async (req, res) => {
   const id = req.params.id;
-  const result = findUserById(id);
-  if (result === undefined) {
-    res.status(404).send("Resource not found");
-  } else {
-    users["users_list"] = users["users_list"].filter(
-      (user) => user["id"] !== id
-    );
-    res.status(204).send({message: "Resource deleted", user: result});
+  try {
+    const result = await findUserById(id);
+    if (!result) {
+      res.status(404).send("Resource not found");
+    } else {
+      res.send(result);
+    }
+  } catch (e) {
+    console.error(e);
+    res.status(500).send("Error fetching user");
   }
 });
 
-const users = {
-  users_list: [
-    {
-      id: "xyz789",
-      name: "Charlie",
-      job: "Janitor",
-    },
-    {
-      id: "abc123",
-      name: "Mac",
-      job: "Bouncer",
-    },
-    {
-      id: "ppp222",
-      name: "Mac",
-      job: "Professor",
-    },
-    {
-      id: "yat999",
-      name: "Dee",
-      job: "Aspring actress",
-    },
-    {
-      id: "zap555",
-      name: "Dennis",
-      job: "Bartender",
-    },
-  ],
-};
+// GET /users?name=<name>&job=<job> to fetch users by matching both name and job
+app.get("/users", async (req, res) => {
+  const { name, job } = req.query;
+  try {
+    let result;
+    if (name && job) {
+      // Fetch users by both name and job
+      result = await userModel.find({ name: name, job: job });
+    } else if (name) {
+      // Fetch users by name only
+      result = await findUserByName(name);
+    } else if (job) {
+      // Fetch users by job only
+      result = await findUserByJob(job);
+    } else {
+      // Fetch all users if no filters are applied
+      result = await userModel.find();
+    }
+    res.send({ users_list: result });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send("Error fetching users");
+  }
+});
+
+// DELETE /users/:id to remove a user, given their id
+app.delete("/users/:id", async (req, res) => {
+  const id = req.params.id;
+  try {
+    const result = await userModel.findByIdAndDelete(id);
+    if (!result) {
+      res.status(404).send("Resource not found");
+    } else {
+      res.status(204).send({ message: "Resource deleted", user: result });
+    }
+  } catch (e) {
+    console.error(e);
+    res.status(500).send("Error deleting user");
+  }
+});
+
+// GET: Fetch user by name and job
+app.get("/users/:name/:job", async (req, res) => {
+  const { name, job } = req.params;
+  try {
+    const result = await findUserByName(name);
+    if (!result || result[0]?.job !== job) {
+      res.status(404).send("Resource not found");
+    } else {
+      res.send(result);
+    }
+  } catch (e) {
+    console.error(e);
+    res.status(500).send("Error fetching user");
+  }
+});
